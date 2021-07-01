@@ -47,3 +47,17 @@ jobs:
         cmake -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
         popd
+
+    - name: Create artifacts archive
+      run: |
+        ARTIFACT_ROOT=artifact_${{ matrix.os }}
+        mkdir ${ARTIFACT_ROOT}
+        cp -a plugins/simple_convolver/build/SimpleConvolver_artefacts/Release/ ${ARTIFACT_ROOT}
+        tar -czf "${ARTIFACT_ROOT}.tar.gz" ${ARTIFACT_ROOT}
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: artifacts
+        path: |
+          artifact_${{ matrix.os }}.tar.gz
