@@ -48,9 +48,18 @@ jobs:
         cmake --build build --config Release
         popd
 
-    - name: Create artifacts archive
+    - name: Create artifacts archive on UNIX platform
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
         ARTIFACT_ROOT=artifact_${{ matrix.os }}
+        mkdir ${ARTIFACT_ROOT}
+        cp -a plugins/simple_convolver/build/SimpleConvolver_artefacts/Release/ ${ARTIFACT_ROOT}
+        tar -czf "${ARTIFACT_ROOT}.tar.gz" ${ARTIFACT_ROOT}
+        
+    - name: Create artifacts on Windows platform
+      if: runner.os == 'Windows'
+      run: |
+        $ARTIFACT_ROOT = "artifact_${{ matrix.os }}"
         mkdir ${ARTIFACT_ROOT}
         cp -a plugins/simple_convolver/build/SimpleConvolver_artefacts/Release/ ${ARTIFACT_ROOT}
         tar -czf "${ARTIFACT_ROOT}.tar.gz" ${ARTIFACT_ROOT}
