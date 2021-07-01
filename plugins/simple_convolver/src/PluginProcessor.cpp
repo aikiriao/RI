@@ -31,8 +31,8 @@ RIAudioProcessor::RIAudioProcessor()
                        )
 #endif
 {
-    const uint32_t defaultNumChannels = sizeof(defaultImpulse) / sizeof(defaultImpulse[0]);
-    const uint32_t defaultImpulseLength = sizeof(pdefaultImpulse) / sizeof(pdefaultImpulse[0]);
+    const uint32_t defaultNumChannels = sizeof(pdefaultImpulse) / sizeof(pdefaultImpulse[0]);
+    const uint32_t defaultImpulseLength = sizeof(defaultImpulse) / sizeof(defaultImpulse[0]);
 
     // インターフェース取得
     convInterface = RIbaraConvolve_GetInterface();
