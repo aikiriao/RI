@@ -31,15 +31,20 @@ RIAudioProcessor::RIAudioProcessor()
                        )
 #endif
 {
+    const uint32_t defaultNumChannels = sizeof(defaultImpulse) / sizeof(defaultImpulse[0]);
+    const uint32_t defaultImpulseLength = sizeof(pdefaultImpulse) / sizeof(pdefaultImpulse[0]);
+
     // インターフェース取得
     convInterface = RIbaraConvolve_GetInterface();
 
     // 畳み込みオブジェクト作成
     {
         convConfig.max_num_input_samples = 512; // PrepareToPlayが実行されるまでの仮値
-        convConfig.max_num_coefficients = sizeof(defaultImpulse) / sizeof(defaultImpulse[0]);
+        convConfig.max_num_coefficients = defaultImpulseLength;
         convWorkSize = convInterface->CalculateWorkSize(&convConfig);
-        for (uint32_t channel = 0; channel < channelMaxCounts; channel++) {
+        convWork = new uint8_t*[defaultNumChannels];
+        conv = new void*[defaultNumChannels];
+        for (uint32_t channel = 0; channel < defaultNumChannels; channel++) {
             convWork[channel] = new uint8_t[static_cast<size_t>(convWorkSize)];
             conv[channel] = convInterface->Create(&convConfig, convWork[channel], convWorkSize);
         }
@@ -49,14 +54,13 @@ RIAudioProcessor::RIAudioProcessor()
     pcm_buffer = new float[convConfig.max_num_input_samples];
 
     // インパルス信号記録領域
-    for (uint32_t channel = 0; channel < channelMaxCounts; channel++) {
-        impulse[channel] = new float[sizeof(defaultImpulse) / sizeof(defaultImpulse[0])];
+    impulse = new float*[defaultNumChannels];
+    for (uint32_t channel = 0; channel < defaultNumChannels; channel++) {
+        impulse[channel] = new float[defaultImpulseLength];
     }
 
     // 仮のインパルスを設定
-    setImpulse(pdefaultImpulse, 
-            sizeof(pdefaultImpulse) / sizeof(pdefaultImpulse[0]),
-            sizeof(defaultImpulse) / sizeof(defaultImpulse[0]));
+    setImpulse(pdefaultImpulse, defaultNumChannels, defaultImpulseLength);
 }
 
 RIAudioProcessor::~RIAudioProcessor()
@@ -65,6 +69,7 @@ RIAudioProcessor::~RIAudioProcessor()
     for (uint32_t channel = 0; channel < channelCounts; channel++) {
         delete[] impulse[channel];
     }
+    delete[] impulse;
 
     // 信号処理バッファの破棄
     delete[] pcm_buffer;
@@ -74,6 +79,9 @@ RIAudioProcessor::~RIAudioProcessor()
         convInterface->Destroy(conv[channel]);
         delete[] convWork[channel];
     }
+    delete[] convWork;
+    delete[] conv;
+
     convInterface = nullptr;
 }
 
@@ -255,9 +263,19 @@ void RIAudioProcessor::setImpulse (const float** impulse, uint32_t channelCounts
     convLock.enter();
 
     // インスタンスを破棄
-    for (uint32_t channel = 0; channel < channelCounts; channel++) {
+    for (uint32_t channel = 0; channel < this->channelCounts; channel++) {
         convInterface->Destroy(conv[channel]);
         delete[] convWork[channel];
+    }
+    delete[] convWork;
+    delete[] conv;
+
+    // 記録してあったインパルスを破棄
+    if (impulse != this->impulse) {
+        for (uint32_t channel = 0; channel < this->channelCounts; channel++) {
+            delete[] this->impulse[channel];
+        }
+        delete[] this->impulse;
     }
 
     // 現在のインパルス情報を記録
@@ -267,10 +285,21 @@ void RIAudioProcessor::setImpulse (const float** impulse, uint32_t channelCounts
     // インスタンスを再度作成
     convConfig.max_num_coefficients = impulseLength;
     convWorkSize = convInterface->CalculateWorkSize(&convConfig);
+    convWork = new uint8_t*[channelCounts];
+    conv = new void*[channelCounts];
     for (uint32_t channel = 0; channel < channelCounts; channel++) {
         convWork[channel] = new uint8_t[static_cast<size_t>(convWorkSize)];
         conv[channel] = convInterface->Create(&convConfig, convWork[channel], convWorkSize);
         jassert(conv[channel] != NULL);
+    }
+
+    // インパルスを記録
+    if (impulse != this->impulse) {
+        this->impulse = new float*[channelCounts];
+        for (uint32_t channel = 0; channel < channelCounts; channel++) {
+            this->impulse[channel] = new float[impulseLength];
+            memcpy(this->impulse[channel], impulse[channel], sizeof(float) * impulseLength);
+        }
     }
 
     // インパルス設定
@@ -278,15 +307,6 @@ void RIAudioProcessor::setImpulse (const float** impulse, uint32_t channelCounts
         convInterface->SetCoefficients(conv[channel], impulse[channel], impulseLength);
     }
 
-    // インパルスを記録
-    if (impulse != this->impulse) {
-        for (uint32_t channel = 0; channel < channelCounts; channel++) {
-            delete[] this->impulse[channel];
-            this->impulse[channel] = new float[impulseLength];
-            memcpy(this->impulse[channel], impulse[channel], sizeof(float) * impulseLength);
-        }
-    }
-    
     convLock.exit();
 }
 

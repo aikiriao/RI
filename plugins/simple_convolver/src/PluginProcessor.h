@@ -11,11 +11,6 @@
 #include <JuceHeader.h>
 #include "ri_convolve.h"
 
-namespace {
-    // 最大チャンネル数
-    const int channelMaxCounts = 2;
-}
-
 //==============================================================================
 /**
 */
@@ -66,13 +61,13 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RIAudioProcessor)
 
-    void *conv[channelMaxCounts];
-    uint8_t *convWork[channelMaxCounts];
+    void **conv;
+    uint8_t **convWork;
     int32_t convWorkSize;
     const RIConvolveInterface *convInterface;
     struct RIConvolveConfig convConfig;
     CriticalSection convLock;
     float *pcm_buffer;
-    float *impulse[channelMaxCounts];
+    float **impulse;
     uint32_t channelCounts, impulseLength;
 };
