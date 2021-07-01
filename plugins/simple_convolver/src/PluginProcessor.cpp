@@ -159,6 +159,8 @@ void RIAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // 入力サンプル数が変わった場合はインスタンスを作り直す
     if (convConfig.max_num_input_samples != static_cast<uint32_t>(samplesPerBlock))
     {
+        convLock.enter();
+
         convConfig.max_num_input_samples = static_cast<uint32_t>(samplesPerBlock);
         convWorkSize = convInterface->CalculateWorkSize(&convConfig);
         for (uint32_t channel = 0; channel < channelCounts; channel++)
@@ -172,6 +174,8 @@ void RIAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
         // 信号処理バッファ再度割当
         delete[] pcm_buffer;
         pcm_buffer = new float[convConfig.max_num_input_samples];
+
+        convLock.exit();
 
         // インパルスも再設定
         setImpulse((const float **)impulse, channelCounts, impulseLength);
