@@ -28,9 +28,9 @@ jobs:
     - name: Build libraries
       run: |
         cmake -B build_debug -DCMAKE_BUILD_TYPE=Debug
-        cmake --build build_debug --config Debug
+        cmake --build build_debug --config Debug -- -j
         cmake -B build_release -DCMAKE_BUILD_TYPE=Release
-        cmake --build build_release --config Release
+        cmake --build build_release --config Release -- -j
         
     - name: Test
       run: |
@@ -45,7 +45,7 @@ jobs:
       run: |
         pushd plugins/simple_convolver
         cmake -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release
+        cmake --build build --config Release -- -j
         popd
 
     - name: Create artifacts archive on UNIX platform
@@ -61,7 +61,7 @@ jobs:
       run: |
         $ARTIFACT_ROOT = "artifact_${{ matrix.os }}"
         mkdir ${ARTIFACT_ROOT}
-        cp -a plugins/simple_convolver/build/SimpleConvolver_artefacts/Release/ ${ARTIFACT_ROOT}
+        Copy-Item plugins/simple_convolver/build/SimpleConvolver_artefacts/Release/ ${ARTIFACT_ROOT} -Recurse
         tar -czf "${ARTIFACT_ROOT}.tar.gz" ${ARTIFACT_ROOT}
         
     - name: Upload artifacts
