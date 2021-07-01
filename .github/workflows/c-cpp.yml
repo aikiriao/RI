@@ -28,9 +28,9 @@ jobs:
     - name: Build libraries
       run: |
         cmake -B build_debug -DCMAKE_BUILD_TYPE=Debug
-        cmake --build build_debug --config Debug -- -j
+        cmake --build build_debug --config Debug
         cmake -B build_release -DCMAKE_BUILD_TYPE=Release
-        cmake --build build_release --config Release -- -j
+        cmake --build build_release --config Release
         
     - name: Test
       run: |
@@ -45,7 +45,7 @@ jobs:
       run: |
         pushd plugins/simple_convolver
         cmake -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release -- -j
+        cmake --build build --config Release
         popd
 
     - name: Create artifacts archive on UNIX platform
