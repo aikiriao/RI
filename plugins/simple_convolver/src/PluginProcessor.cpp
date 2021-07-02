@@ -60,7 +60,11 @@ RIAudioProcessor::RIAudioProcessor()
     }
 
     // 仮のインパルスを設定
-    setImpulse(pdefaultImpulse, defaultNumChannels, defaultImpulseLength);
+    this->impulseLength = defaultImpulseLength;
+    this->channelCounts = defaultNumChannels;
+    for (uint32_t channel = 0; channel < defaultNumChannels; channel++) {
+        memcpy(impulse[channel], pdefaultImpulse[channel], sizeof(float) * defaultImpulseLength);
+    }
 }
 
 RIAudioProcessor::~RIAudioProcessor()
