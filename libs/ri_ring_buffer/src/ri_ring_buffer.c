@@ -141,9 +141,6 @@ RIRingBufferApiResult RIRingBuffer_Put(
         data = (const void *)((uint8_t *)data + data_head_size);
         size -= data_head_size;
         buffer->write_pos = 0;
-        if (size == 0) {
-            return RIRINGBUFFER_APIRESULT_OK;
-        }
     }
 
     /* 剰余領域への書き込み */
