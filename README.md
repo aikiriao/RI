@@ -1,6 +1,6 @@
 # RI
 
-Rinne Ibara -- A simple signal convolver
+A simple signal convolver
 
 ## License
 
