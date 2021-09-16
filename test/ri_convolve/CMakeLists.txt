@@ -10,7 +10,7 @@ add_executable(${TEST_NAME}
     ri_convolve_test.cpp
     ri_fft_convolve_test.cpp
     ri_karatsuba_test.cpp
-    ribara_convolve_test.cpp
+    ri_zerolatency_fft_convolve_test.cpp
     main.cpp)
 
 # インクルードディレクトリ

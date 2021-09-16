@@ -11,8 +11,8 @@
 
 /* テスト対象のモジュール */
 #include "../../libs/ri_convolve/include/ri_karatsuba.h"
-#include "../../libs/ri_convolve/include/ribara_convolve.h"
 #include "../../libs/ri_convolve/include/ri_fft_convolve.h"
+#include "../../libs/ri_convolve/include/ri_zerolatency_fft_convolve.h"
 
 /* 直接畳み込み（リファレンス） */
 static void DirectConvolve(
@@ -251,12 +251,12 @@ TEST(RIConvolveTest, ConvolveTest)
     config.max_num_input_samples = 256;
     ConvolveCheck(RIKaratsuba_GetInterface(), &config);
     ConvolveCheck(RIFFTConvolve_GetInterface(), &config);
-    ConvolveCheck(RIbaraConvolve_GetInterface(), &config);
+    ConvolveCheck(RIZeroLatencyFFTConvolve_GetInterface(), &config);
 
     config.max_num_coefficients = 10000;
     config.max_num_input_samples = 512;
     ConvolveCheck(RIFFTConvolve_GetInterface(), &config);
-    ConvolveCheck(RIbaraConvolve_GetInterface(), &config);
+    ConvolveCheck(RIZeroLatencyFFTConvolve_GetInterface(), &config);
 }
 
 

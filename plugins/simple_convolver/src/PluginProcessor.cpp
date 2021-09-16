@@ -8,7 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "ribara_convolve.h"
+#include "ri_zerolatency_fft_convolve.h"
 
 #include <cstring>
 
@@ -35,7 +35,7 @@ RIAudioProcessor::RIAudioProcessor()
     const uint32_t defaultImpulseLength = sizeof(defaultImpulse) / sizeof(defaultImpulse[0]);
 
     // インターフェース取得
-    convInterface = RIbaraConvolve_GetInterface();
+    convInterface = RIZeroLatencyFFTConvolve_GetInterface();
 
     // 畳み込みオブジェクト作成
     {

@@ -5,5 +5,5 @@
 
 /* テスト対象のモジュール */
 extern "C" {
-#include "../../libs/ri_convolve/src/ribara_convolve.c"
+#include "../../libs/ri_convolve/src/ri_zerolatency_fft_convolve.c"
 }

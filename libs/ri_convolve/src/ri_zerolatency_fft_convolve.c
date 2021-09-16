@@ -1,4 +1,4 @@
-#include "ribara_convolve.h"
+#include "ri_zerolatency_fft_convolve.h"
 
 #include <assert.h>
 #include <string.h>
@@ -21,7 +21,7 @@
 /* nの倍数切り上げ */
 #define ROUNDUP(val, n) ((((val) + ((n) - 1)) / (n)) * (n))
 
-struct RIbaraConvolve {
+struct RIZeroLatencyFFTConvolve {
     const struct RIConvolveInterface *time_conv_if; /* 時間領域畳み込みモジュールインターフェース	*/
     const struct RIConvolveInterface *freq_conv_if; /* 周波数領域畳み込みモジュールインターフェース */
     void *time_conv_obj; /* 時間領域畳み込みモジュールオブジェクト本体 */
@@ -33,39 +33,39 @@ struct RIbaraConvolve {
 };
 
 /* ワークサイズ取得 */
-static int32_t RIbaraConvolve_CalculateWorkSize(const struct RIConvolveConfig *config);
+static int32_t RIZeroLatencyFFTConvolve_CalculateWorkSize(const struct RIConvolveConfig *config);
 /* インスタンス生成 */
-static void* RIbaraConvolve_Create(const struct RIConvolveConfig *config, void *work, int32_t work_size);
+static void* RIZeroLatencyFFTConvolve_Create(const struct RIConvolveConfig *config, void *work, int32_t work_size);
 /* インスタンス破棄 */
-static void	RIbaraConvolve_Destroy(void *obj);
+static void	RIZeroLatencyFFTConvolve_Destroy(void *obj);
 /* 内部状態リセット */
-static void	RIbaraConvolve_Reset(void *obj);
+static void	RIZeroLatencyFFTConvolve_Reset(void *obj);
 /* 係数セット */
-static void	RIbaraConvolve_SetCoefficients(void *obj, const float *coefficients, uint32_t num_coefficients);
+static void	RIZeroLatencyFFTConvolve_SetCoefficients(void *obj, const float *coefficients, uint32_t num_coefficients);
 /* 畳み込み */
-static void	RIbaraConvolve_Convolve(void *obj, const float *input, float *output, uint32_t num_samples);
+static void	RIZeroLatencyFFTConvolve_Convolve(void *obj, const float *input, float *output, uint32_t num_samples);
 /* レイテンシ取得 */
-static int32_t RIbaraConvolve_GetLatencyNumSamples(void *obj);
+static int32_t RIZeroLatencyFFTConvolve_GetLatencyNumSamples(void *obj);
 
 /* インターフェース */
 static const struct RIConvolveInterface st_ribara_convolve_if = {
-    RIbaraConvolve_CalculateWorkSize,
-    RIbaraConvolve_Create,
-    RIbaraConvolve_Destroy,
-    RIbaraConvolve_Reset,
-    RIbaraConvolve_SetCoefficients,
-    RIbaraConvolve_Convolve,
-    RIbaraConvolve_GetLatencyNumSamples,
+    RIZeroLatencyFFTConvolve_CalculateWorkSize,
+    RIZeroLatencyFFTConvolve_Create,
+    RIZeroLatencyFFTConvolve_Destroy,
+    RIZeroLatencyFFTConvolve_Reset,
+    RIZeroLatencyFFTConvolve_SetCoefficients,
+    RIZeroLatencyFFTConvolve_Convolve,
+    RIZeroLatencyFFTConvolve_GetLatencyNumSamples,
 };
 
 /* インターフェース取得 */
-const struct RIConvolveInterface* RIbaraConvolve_GetInterface(void)
+const struct RIConvolveInterface* RIZeroLatencyFFTConvolve_GetInterface(void)
 {
     return &st_ribara_convolve_if;
 }
 
 /* ワークサイズ計算 */
-static int32_t RIbaraConvolve_CalculateWorkSize(const struct RIConvolveConfig *config)
+static int32_t RIZeroLatencyFFTConvolve_CalculateWorkSize(const struct RIConvolveConfig *config)
 {
     int32_t	time_conv_size, freq_conv_size, delay_buffer_size, work_size;
     struct RIRingBufferConfig buffer_config;
@@ -98,7 +98,7 @@ static int32_t RIbaraConvolve_CalculateWorkSize(const struct RIConvolveConfig *c
     buffer_config.max_required_size = sizeof(float) * config->max_num_input_samples;
     delay_buffer_size = RIRingBuffer_CalculateWorkSize(&buffer_config);
 
-    work_size = sizeof(struct RIbaraConvolve) + RIBARACONVOLVE_ALIGNMENT;
+    work_size = sizeof(struct RIZeroLatencyFFTConvolve) + RIBARACONVOLVE_ALIGNMENT;
     work_size += time_conv_size;
     work_size += freq_conv_size;
     work_size += delay_buffer_size;
@@ -108,9 +108,9 @@ static int32_t RIbaraConvolve_CalculateWorkSize(const struct RIConvolveConfig *c
 }
 
 /* インスタンス生成 */
-static void* RIbaraConvolve_Create(const struct RIConvolveConfig *config, void *work, int32_t work_size)
+static void* RIZeroLatencyFFTConvolve_Create(const struct RIConvolveConfig *config, void *work, int32_t work_size)
 {
-    struct RIbaraConvolve *conv;
+    struct RIZeroLatencyFFTConvolve *conv;
     uint8_t *work_ptr = (uint8_t *)work;
     struct RIConvolveConfig conv_config;
     struct RIRingBufferConfig buffer_config;
@@ -118,7 +118,7 @@ static void* RIbaraConvolve_Create(const struct RIConvolveConfig *config, void *
 
     /* 引数チェック */
     if ((config == NULL) || (work == NULL)
-            || (work_size < RIbaraConvolve_CalculateWorkSize(config))) {
+            || (work_size < RIZeroLatencyFFTConvolve_CalculateWorkSize(config))) {
         return NULL;
     }
 
@@ -126,11 +126,11 @@ static void* RIbaraConvolve_Create(const struct RIConvolveConfig *config, void *
 
     /* 構造体配置 */
     work_ptr = (uint8_t *)ROUNDUP((uintptr_t)work_ptr, RIBARACONVOLVE_ALIGNMENT);
-    conv = (struct RIbaraConvolve *)work_ptr;
+    conv = (struct RIZeroLatencyFFTConvolve *)work_ptr;
     conv->time_conv_if = RIKaratsuba_GetInterface();
     conv->freq_conv_if = RIFFTConvolve_GetInterface();
     conv->max_num_input_samples = config->max_num_input_samples;
-    work_ptr += sizeof(struct RIbaraConvolve);
+    work_ptr += sizeof(struct RIZeroLatencyFFTConvolve);
 
     /* 共通のパラメータ設定項目 */
     conv_config.max_num_input_samples = config->max_num_input_samples;
@@ -168,9 +168,9 @@ static void* RIbaraConvolve_Create(const struct RIConvolveConfig *config, void *
 }
 
 /* インスタンス破棄 */
-static void RIbaraConvolve_Destroy(void *obj)
+static void RIZeroLatencyFFTConvolve_Destroy(void *obj)
 {
-    struct RIbaraConvolve *conv = (struct RIbaraConvolve *)obj;
+    struct RIZeroLatencyFFTConvolve *conv = (struct RIZeroLatencyFFTConvolve *)obj;
 
     if (conv != NULL) {
         /* リングバッファ破棄 */
@@ -182,9 +182,9 @@ static void RIbaraConvolve_Destroy(void *obj)
 }
 
 /* 係数セット */
-static void RIbaraConvolve_SetCoefficients(void *obj, const float *coefficients, uint32_t num_coefficients)
+static void RIZeroLatencyFFTConvolve_SetCoefficients(void *obj, const float *coefficients, uint32_t num_coefficients)
 {
-    struct RIbaraConvolve *conv = (struct RIbaraConvolve *)obj;
+    struct RIZeroLatencyFFTConvolve *conv = (struct RIZeroLatencyFFTConvolve *)obj;
 
     if (num_coefficients > RIBARACONVOLVE_NUM_TIMEDOMAIN_COEFFICIENTS) {
         conv->use_freq_conv = 1;
@@ -201,13 +201,13 @@ static void RIbaraConvolve_SetCoefficients(void *obj, const float *coefficients,
     }
 
     /* 内部状態をリセット（前の係数の影響をクリア） */
-    RIbaraConvolve_Reset(conv);
+    RIZeroLatencyFFTConvolve_Reset(conv);
 }
 
 /* 畳み込み計算 */
-static void RIbaraConvolve_Convolve(void *obj, const float *input, float *output, uint32_t num_samples)
+static void RIZeroLatencyFFTConvolve_Convolve(void *obj, const float *input, float *output, uint32_t num_samples)
 {
-    struct RIbaraConvolve *conv = (struct RIbaraConvolve *)obj;
+    struct RIZeroLatencyFFTConvolve *conv = (struct RIZeroLatencyFFTConvolve *)obj;
 
     /* 先頭分を時間領域で畳み込み */
     conv->time_conv_if->Convolve(conv->time_conv_obj, input, output, num_samples);
@@ -231,9 +231,9 @@ static void RIbaraConvolve_Convolve(void *obj, const float *input, float *output
 }
 
 /* 内部状態リセット */
-static void RIbaraConvolve_Reset(void *obj)
+static void RIZeroLatencyFFTConvolve_Reset(void *obj)
 {
-    struct RIbaraConvolve *conv = (struct RIbaraConvolve *)obj;
+    struct RIZeroLatencyFFTConvolve *conv = (struct RIZeroLatencyFFTConvolve *)obj;
     int32_t smpl, num_input_delay;
 
     /* 各畳み込みモジュールのリセット */
@@ -256,7 +256,7 @@ static void RIbaraConvolve_Reset(void *obj)
 }
 
 /* レイテンシーの取得 */
-static int32_t RIbaraConvolve_GetLatencyNumSamples(void *obj)
+static int32_t RIZeroLatencyFFTConvolve_GetLatencyNumSamples(void *obj)
 {
     (void)obj;
     return 0;
