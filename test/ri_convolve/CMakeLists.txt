@@ -24,7 +24,7 @@ include_directories(
 # リンクするライブラリ
 target_link_libraries(${TEST_NAME} gtest gtest_main ri_ring_buffer ri_fft)
 if (NOT MSVC)
-target_link_libraries(${TEST_NAME} pthread)
+target_link_libraries(${TEST_NAME} pthread m)
 endif()
 
 # コンパイルオプション
